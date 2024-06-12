@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     int mode = 0;
     String ultimate = "";
+    boolean summary = false;
 
     TextView t1;
     GridView g1;
@@ -55,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
     Button b7;
     Button b8;
     Button b9;
+    Button b24;
 
     ArrayList<String> anagrams;
     int words;
@@ -81,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         b7 = findViewById(R.id.button11);
         b8 = findViewById(R.id.button12);
         b9 = findViewById(R.id.button30);
+        b24 = findViewById(R.id.button38);
 
         db = new sqliteDB(MainActivity.this);
 
@@ -276,10 +279,12 @@ public class MainActivity extends AppCompatActivity {
         b7.setEnabled(true);
         b8.setEnabled(true);
         b9.setEnabled(true);
+        b24.setEnabled(true);
 
         t1.setText("Page " + (counter + 1) + " out of " + (((words - 1) / 50) + 1));
         t4.setText("Score: " + score + "/" + number);
         t5.setText("");
+        summary = false;
         e2.setText("");
 
         customadapter cusadapter = new customadapter(MainActivity.this, R.layout.cell, jumbles, totals);
@@ -293,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
 
                 String solved = db.getSolvedAnswers(ultimate);
                 t5.setText(Html.fromHtml(solved));
+                summary = false;
             }
         });
 
@@ -318,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
                     String back = hook.get(2);
                     String amount = "<b><small>" + back + "</small> " + guess + " <small>" + front + "</small></b> " + meaning;
                     t5.setText(Html.fromHtml(amount));
+                    summary = false;
                     replies.remove(guess);
                     score++;
                     db.updateScore(letters, score);
@@ -504,6 +511,7 @@ public class MainActivity extends AppCompatActivity {
 
                                     String amount = "<font color=\"" + colour + "\"><b><small>" + back + "</small> " + guess + " <small>" + front + "</small></b> " + meaning + " <b>" + label + "</b></font>";
                                     t5.setText(Html.fromHtml(amount));
+                                    summary = false;
                                     replies.remove(guess);
                                     score++;
                                     db.updateScore(letters, score);
@@ -593,10 +601,8 @@ public class MainActivity extends AppCompatActivity {
                                 String category = (e4.getText()).toString();
                                 db.updateWord(line, category);
 
-                                if(mode == 1)
-                                {
-                                    if(line.equals(ultimate))
-                                    {
+                                if (mode == 1) {
+                                    if (line.equals(ultimate)) {
                                         ArrayList<String> hook = db.getDefinition(line);
                                         String meaning = hook.get(0);
                                         String front = hook.get(1);
@@ -604,38 +610,48 @@ public class MainActivity extends AppCompatActivity {
 
                                         String colour;
 
-                                        switch(category)
-                                        {
-                                            case "Known": colour = "#008000";
+                                        switch (category) {
+                                            case "Known":
+                                                colour = "#008000";
                                                 break;
-                                            case "Unknown": colour = "#FF0000";
+                                            case "Unknown":
+                                                colour = "#FF0000";
                                                 break;
-                                            case "Benjamin": colour = "#FF00FF";
+                                            case "Benjamin":
+                                                colour = "#FF00FF";
                                                 break;
-                                            case "Prefix": colour = "#8000FF";
+                                            case "Prefix":
+                                                colour = "#8000FF";
                                                 break;
-                                            case "Suffix": colour = "#0000FF";
+                                            case "Suffix":
+                                                colour = "#0000FF";
                                                 break;
-                                            case "Plural": colour = "#FF8000";
+                                            case "Plural":
+                                                colour = "#FF8000";
                                                 break;
-                                            default: colour = "#000000";
+                                            default:
+                                                colour = "#000000";
                                         }
 
                                         String amount = "<font color=\"" + colour + "\"><b><small>" + back + "</small> " + line + " <small>" + front + "</small></b> " + meaning + " <b>" + category + "</b></font>";
                                         t5.setText(Html.fromHtml(amount));
+                                        summary = false;
                                     }
-                                }
-                                else if(mode == 2)
-                                {
+                                } else if (mode == 2) {
                                     char last[] = line.toCharArray();
                                     Arrays.sort(last);
                                     String order = new String(last);
 
-                                    if(order.equals(ultimate))
-                                    {
+                                    if (order.equals(ultimate)) {
                                         String solved = db.getSolvedAnswers(order);
                                         t5.setText(Html.fromHtml(solved));
+                                        summary = false;
                                     }
+                                }
+
+                                if(summary == true)
+                                {
+                                    revise(jumbles);
                                 }
                             }
                         }).create();
@@ -678,6 +694,20 @@ public class MainActivity extends AppCompatActivity {
                 dialog.show();
             }
         });
+
+        b24.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                summary = true;
+                revise(jumbles);
+            }
+        });
+    }
+
+    public void revise(ArrayList<String> jumbles)
+    {
+        String revision = db.getSummary(jumbles);
+        t5.setText(Html.fromHtml(revision));
     }
 
     public void cumulativeTime(long begin, double delay, ArrayList<String> replies)

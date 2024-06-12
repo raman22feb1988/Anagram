@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class sqliteDB extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "CSW2021.db";
@@ -406,6 +407,76 @@ public class sqliteDB extends SQLiteOpenHelper {
             } while (cursor.moveToNext());
         }
         return Integer.parseInt(data);
+    }
+
+    public String getSummary(ArrayList<String> guesses)
+    {
+        String guess = (((guesses.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT back, word, front, label FROM words WHERE anagram IN " + guess + " AND NOT label = \"\"", null);
+
+        HashMap<String, ArrayList<String>> h = new HashMap<>();
+
+        if (cursor.moveToFirst()) {
+            do {
+                String back = cursor.getString(0);
+                String word = cursor.getString(1);
+                String front = cursor.getString(2);
+                String label = cursor.getString(3);
+
+                String data = "<small>" + back + "</small> " + word + " <small>" + front + "</small>";
+
+                if(h.containsKey(label)) {
+                    (h.get(label)).add(data);
+                }
+                else {
+                    h.put(label, new ArrayList<>());
+                    (h.get(label)).add(data);
+                }
+            } while (cursor.moveToNext());
+        }
+
+        String revision = "";
+        int serial = 0;
+
+        for(Map.Entry<String, ArrayList<String>> entry : h.entrySet())
+        {
+            String key = entry.getKey();
+            String value = (h.get(key)).toString();
+            int l = value.length();
+            String aerolith = value.substring(1, l - 1);
+
+            String colour;
+
+            switch(key)
+            {
+                case "Known": colour = "#008000";
+                    break;
+                case "Unknown": colour = "#FF0000";
+                    break;
+                case "Benjamin": colour = "#FF00FF";
+                    break;
+                case "Prefix": colour = "#8000FF";
+                    break;
+                case "Suffix": colour = "#0000FF";
+                    break;
+                case "Plural": colour = "#FF8000";
+                    break;
+                default: colour = "#000000";
+            }
+
+            if(serial == 0) {
+                revision += ("<font color=\"" + colour + "\"><b>" + key + ": " + aerolith + "</b></font>");
+            }
+            else {
+                revision += ("<br><font color=\"" + colour + "\"><b>" + key + ": " + aerolith + "</b></font>");
+            }
+
+            serial++;
+        }
+
+        return revision;
     }
 
     public static void main(String[] args) {
