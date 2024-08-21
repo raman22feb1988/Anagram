@@ -28,8 +28,9 @@
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Quiz"
-                android:id="@+id/button9">
+                android:text="SQL Query"
+                android:enabled="false"
+                android:id="@+id/button39">
             </Button>
             <Button
                 android:layout_width="wrap_content"
@@ -66,6 +67,12 @@
                 android:layout_height="wrap_content"
                 android:text="Filter By Label"
                 android:id="@+id/button13">
+            </Button>
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Quiz"
+                android:id="@+id/button9">
             </Button>
             <Button
                 android:layout_width="wrap_content"

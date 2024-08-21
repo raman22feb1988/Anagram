@@ -8,6 +8,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class sqliteDB extends SQLiteOpenHelper {
@@ -24,7 +25,7 @@ public class sqliteDB extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // TODO Auto-generated method stub
         db.execSQL(
-                "create table words(word text, length integer, anagram text, definition text, probability real, time real, solved integer, front text, back text, label text)"
+                "create table words(word text, length integer, anagram text, definition text, probability real, time real, solved integer, back text, front text, label text, page integer)"
         );
         db.execSQL(
                 "create table scores(length integer, score integer, counter integer, page integer, label text)"
@@ -56,7 +57,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         return true;
     }
 
-    public boolean insertWord(String word, int length, String anagram, String definition, double probability, String front, String back, String label)
+    public boolean insertWord(String word, int length, String anagram, String definition, double probability, String back, String front, String label)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -68,9 +69,10 @@ public class sqliteDB extends SQLiteOpenHelper {
         contentValues.put("probability", probability);
         contentValues.put("time", 0);
         contentValues.put("solved", 0);
-        contentValues.put("front", front);
         contentValues.put("back", back);
+        contentValues.put("front", front);
         contentValues.put("label", label);
+        contentValues.put("page", 0);
 
         db.insert("words", null, contentValues);
         return true;
@@ -143,18 +145,18 @@ public class sqliteDB extends SQLiteOpenHelper {
         ArrayList<String> wordList = new ArrayList<>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, time, front, back, label FROM words WHERE length = " + letters + " AND solved = 1 ORDER BY time DESC", null);
+        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label FROM words WHERE length = " + letters + " AND solved = 1 ORDER BY time DESC", null);
 
         if (cursor.moveToFirst()) {
             do {
                 String data = cursor.getString(0);
                 String definition = cursor.getString(1);
                 String time = cursor.getString(2);
-                String front = cursor.getString(3);
-                String back = cursor.getString(4);
+                String back = cursor.getString(3);
+                String front = cursor.getString(4);
                 String label = cursor.getString(5);
 
-                wordList.add("<b><small>" + back + "</small> " + data + " <small>" + front + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
             } while (cursor.moveToNext());
         }
         return wordList;
@@ -165,17 +167,39 @@ public class sqliteDB extends SQLiteOpenHelper {
         ArrayList<String> wordList = new ArrayList<>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, time, front, back FROM words WHERE length = " + letters + " AND solved = 1 AND label = \"" + label + "\" ORDER BY time DESC", null);
+        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front FROM words WHERE length = " + letters + " AND solved = 1 AND label = \"" + label + "\" ORDER BY time DESC", null);
 
         if (cursor.moveToFirst()) {
             do {
                 String data = cursor.getString(0);
                 String definition = cursor.getString(1);
                 String time = cursor.getString(2);
-                String front = cursor.getString(3);
-                String back = cursor.getString(4);
+                String back = cursor.getString(3);
+                String front = cursor.getString(4);
 
-                wordList.add("<b><small>" + back + "</small> " + data + " <small>" + front + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
+            } while (cursor.moveToNext());
+        }
+        return wordList;
+    }
+
+    public ArrayList<String> getSqlQuery(String query)
+    {
+        ArrayList<String> wordList = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label FROM words WHERE solved = 1 AND " + query + " ORDER BY time DESC", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String data = cursor.getString(0);
+                String definition = cursor.getString(1);
+                String time = cursor.getString(2);
+                String back = cursor.getString(3);
+                String front = cursor.getString(4);
+                String label = cursor.getString(5);
+
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
             } while (cursor.moveToNext());
         }
         return wordList;
@@ -213,17 +237,17 @@ public class sqliteDB extends SQLiteOpenHelper {
     public String getSolvedAnswers(String jumble)
     {
         String solved = new String();
-        int total = 0;
+        int total = 1;
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, front, back, label FROM words WHERE anagram = \"" + jumble + "\" AND solved = 1 ORDER BY time", null);
+        Cursor cursor = db.rawQuery("SELECT word, definition, back, front, label FROM words WHERE anagram = \"" + jumble + "\" AND solved = 1 ORDER BY time", null);
 
         if (cursor.moveToFirst()) {
             do {
                 String data = cursor.getString(0);
                 String definition = cursor.getString(1);
-                String front = cursor.getString(2);
-                String back = cursor.getString(3);
+                String back = cursor.getString(2);
+                String front = cursor.getString(3);
                 String label = cursor.getString(4);
 
                 String colour;
@@ -234,7 +258,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                         break;
                     case "Unknown": colour = "#FF0000";
                         break;
-                    case "Benjamin": colour = "#FF00FF";
+                    case "Compound": colour = "#FF00FF";
                         break;
                     case "Prefix": colour = "#8000FF";
                         break;
@@ -245,11 +269,11 @@ public class sqliteDB extends SQLiteOpenHelper {
                     default: colour = "#000000";
                 }
 
-                if(total == 0) {
-                    solved += ("<font color=\"" + colour + "\"><b><small>" + back + "</small> " + data + " <small>" + front + "</small></b> " + definition + " <b>" + label + "</b></font>");
+                if(total == 1) {
+                    solved += ("<font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + label + "</b></font>");
                 }
                 else {
-                    solved += ("<br><font color=\"" + colour + "\"><b><small>" + back + "</small> " + data + " <small>" + front + "</small></b> " + definition + " <b>" + label + "</b></font>");
+                    solved += ("<br><font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + label + "</b></font>");
                 }
 
                 total++;
@@ -258,28 +282,56 @@ public class sqliteDB extends SQLiteOpenHelper {
         return solved;
     }
 
+    public String getUnsolvedWords(String unsolved)
+    {
+        String unsolvedAnswers = new String();
+        int total = 1;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT word, definition, back, front FROM words WHERE anagram = \"" + unsolved + "\" AND solved = 0", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String data = cursor.getString(0);
+                String definition = cursor.getString(1);
+                String back = cursor.getString(2);
+                String front = cursor.getString(3);
+
+                if(total == 1) {
+                    unsolvedAnswers += (total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition);
+                }
+                else {
+                    unsolvedAnswers += ("<br>" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition);
+                }
+
+                total++;
+            } while (cursor.moveToNext());
+        }
+        return unsolvedAnswers;
+    }
+
     public ArrayList<String> getDefinition(String guess)
     {
         ArrayList<String> hookList = new ArrayList<>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT definition, front, back FROM words WHERE word = \"" + guess + "\"", null);
+        Cursor cursor = db.rawQuery("SELECT definition, back, front FROM words WHERE word = \"" + guess + "\"", null);
 
         String meaning = null;
-        String front = null;
         String back = null;
+        String front = null;
 
         if (cursor.moveToFirst()) {
             do {
                 meaning = cursor.getString(0);
-                front = cursor.getString(1);
-                back = cursor.getString(2);
+                back = cursor.getString(1);
+                front = cursor.getString(2);
             } while (cursor.moveToNext());
         }
 
         hookList.add(meaning);
-        hookList.add(front);
         hookList.add(back);
+        hookList.add(front);
 
         return hookList;
     }
@@ -364,6 +416,28 @@ public class sqliteDB extends SQLiteOpenHelper {
                 new String[] {line});
     }
 
+    public int updatePageNumbers(ArrayList<String> anagramList) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        int wordLength = anagramList.size();
+        int pages = (((wordLength - 1) / 50) + 1);
+
+        int success = 1;
+
+        for(int pageNumber = 0; pageNumber < pages; pageNumber++) {
+            List<String> anagramArray = anagramList.subList(pageNumber * 50, Math.min((pageNumber + 1) * 50, wordLength));
+            String anagramString = (((anagramArray.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
+
+            ContentValues values = new ContentValues();
+            values.put("page", pageNumber + 1);
+
+            success &= db.update("words", values, "anagram IN " + anagramString,
+                    new String[] {});
+        }
+
+        return success;
+    }
+
     public double getTime(String guess)
     {
         SQLiteDatabase db = this.getReadableDatabase();
@@ -414,18 +488,18 @@ public class sqliteDB extends SQLiteOpenHelper {
         String guess = (((guesses.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT back, word, front, label FROM words WHERE anagram IN " + guess + " AND NOT label = \"\"", null);
+        Cursor cursor = db.rawQuery("SELECT front, word, back, label FROM words WHERE anagram IN " + guess + " AND NOT label = \"\"", null);
 
         HashMap<String, ArrayList<String>> h = new HashMap<>();
 
         if (cursor.moveToFirst()) {
             do {
-                String back = cursor.getString(0);
+                String front = cursor.getString(0);
                 String word = cursor.getString(1);
-                String front = cursor.getString(2);
+                String back = cursor.getString(2);
                 String label = cursor.getString(3);
 
-                String data = "<small>" + back + "</small> " + word + " <small>" + front + "</small>";
+                String data = "<small>" + front + "</small> " + word + " <small>" + back + "</small>";
 
                 if(h.containsKey(label)) {
                     (h.get(label)).add(data);
@@ -455,7 +529,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                     break;
                 case "Unknown": colour = "#FF0000";
                     break;
-                case "Benjamin": colour = "#FF00FF";
+                case "Compound": colour = "#FF00FF";
                     break;
                 case "Prefix": colour = "#8000FF";
                     break;

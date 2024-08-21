@@ -30,6 +30,7 @@ public class Report extends AppCompatActivity {
     Button b5;
     Button b6;
     Button b7;
+    Button b15;
 
     ArrayList<String> anagrams;
     int words;
@@ -49,6 +50,7 @@ public class Report extends AppCompatActivity {
         b5 = findViewById(R.id.button13);
         b6 = findViewById(R.id.button29);
         b7 = findViewById(R.id.button31);
+        b15 = findViewById(R.id.button39);
 
         db = new sqliteDB(Report.this);
 
@@ -114,6 +116,7 @@ public class Report extends AppCompatActivity {
         b1.setEnabled(true);
         b2.setEnabled(true);
         b7.setEnabled(true);
+        b15.setEnabled(true);
 
         if(words > 0) {
             t1.setText("Page " + (counter + 1) + " out of " + (((words - 1) / 100) + 1));
@@ -143,7 +146,7 @@ public class Report extends AppCompatActivity {
                     break;
                 case "Unknown": colour = "#FF0000";
                     break;
-                case "Benjamin": colour = "#FF00FF";
+                case "Compound": colour = "#FF00FF";
                     break;
                 case "Prefix": colour = "#8000FF";
                     break;
@@ -244,7 +247,7 @@ public class Report extends AppCompatActivity {
                 b10.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        e6.setText("Benjamin");
+                        e6.setText("Compound");
                     }
                 });
 
@@ -340,6 +343,43 @@ public class Report extends AppCompatActivity {
                                 {
                                     counter = page - 1;
                                     db.updatePage(letters, counter, label);
+                                    nextWord();
+                                }
+                            }
+                        }).create();
+                dialog.show();
+            }
+        });
+
+        b15.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater inflater = LayoutInflater.from(Report.this);
+                final View yourCustomView = inflater.inflate(R.layout.query, null);
+
+                EditText e1 = yourCustomView.findViewById(R.id.edittext8);
+
+                AlertDialog dialog = new AlertDialog.Builder(Report.this)
+                        .setTitle("SELECT front, word, back, definition, time, label FROM words WHERE")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                label = (e1.getText()).toString();
+
+                                anagrams = db.getSqlQuery(label);
+                                words = anagrams.size();
+
+                                int exists = db.existLabel(letters, label);
+
+                                if(exists == 0)
+                                {
+                                    counter = 0;
+                                    db.insertLabel(letters, label);
+                                    nextWord();
+                                }
+                                else
+                                {
+                                    counter = db.getPage(letters, label);
                                     nextWord();
                                 }
                             }

@@ -90,12 +90,25 @@
         android:numColumns="5"
         android:id="@+id/gridview1">
     </GridView>
-    <EditText
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="24dp"
-        android:id="@+id/edittext2">
-    </EditText>
+        android:orientation="horizontal"
+        android:layoutDirection="rtl"
+        android:layout_alignParentEnd="true">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Clear"
+            android:id="@+id/button40">
+        </Button>
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="24dp"
+            android:id="@+id/edittext2">
+        </EditText>
+    </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

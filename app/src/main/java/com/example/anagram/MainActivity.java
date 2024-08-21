@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     Button b8;
     Button b9;
     Button b24;
+    Button b25;
 
     ArrayList<String> anagrams;
     int words;
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         b8 = findViewById(R.id.button12);
         b9 = findViewById(R.id.button30);
         b24 = findViewById(R.id.button38);
+        b25 = findViewById(R.id.button40);
 
         db = new sqliteDB(MainActivity.this);
 
@@ -148,26 +150,28 @@ public class MainActivity extends AppCompatActivity {
             Arrays.sort(c);
             String anagram = new String(c);
             String definition = entry.getValue();
-            StringBuilder front = new StringBuilder();
             StringBuilder back = new StringBuilder();
+            StringBuilder front = new StringBuilder();
             for(char letter = 'A'; letter <= 'Z'; letter++)
             {
                 if(dictionary.containsKey(word + letter))
                 {
-                    front.append(letter);
+                    back.append(letter);
                 }
                 if(dictionary.containsKey(letter + word))
                 {
-                    back.append(letter);
+                    front.append(letter);
                 }
             }
-            boolean q = db.insertWord(word, word.length(), anagram, definition, probability(word), new String(front), new String(back), "");
+            boolean q = db.insertWord(word, word.length(), anagram, definition, probability(word), new String(back), new String(front), "");
         }
 
         SharedPreferences pref = getApplicationContext().getSharedPreferences("AppData", 0);
         SharedPreferences.Editor editor = pref.edit();
         editor.putBoolean("prepared", true);
         editor.commit();
+
+        setPageNumbers();
 
         getWordLength();
     }
@@ -227,6 +231,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).create();
         dialog.show();
+    }
+
+    public void setPageNumbers()
+    {
+        for(int lengths = 2; lengths <= 15; lengths++)
+        {
+            ArrayList<String> anagramList = db.getAllAnagrams(lengths);
+            db.updatePageNumbers(anagramList);
+        }
     }
 
     public void start()
@@ -302,6 +315,31 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        g1.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                final View yourCustomView = inflater.inflate(R.layout.display, null);
+
+                TextView t6 = yourCustomView.findViewById(R.id.textview13);
+
+                String unsolved = jumbles.get(i);
+                String unsolvedAnswers = db.getUnsolvedWords(unsolved);
+                t6.setText(Html.fromHtml(unsolvedAnswers));
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Unsolved answers")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                            }
+                        }).create();
+                dialog.show();
+
+                return true;
+            }
+        });
+
         b1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -320,9 +358,9 @@ public class MainActivity extends AppCompatActivity {
                     db.updateTime(guesses, time, 1);
                     ArrayList<String> hook = db.getDefinition(guess);
                     String meaning = hook.get(0);
-                    String front = hook.get(1);
-                    String back = hook.get(2);
-                    String amount = "<b><small>" + back + "</small> " + guess + " <small>" + front + "</small></b> " + meaning;
+                    String back = hook.get(1);
+                    String front = hook.get(2);
+                    String amount = "<b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning;
                     t5.setText(Html.fromHtml(amount));
                     summary = false;
                     replies.remove(guess);
@@ -439,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
                     b12.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
-                            e5.setText("Benjamin");
+                            e5.setText("Compound");
                         }
                     });
 
@@ -487,8 +525,8 @@ public class MainActivity extends AppCompatActivity {
                                     db.updateLabel(guesses, time, 1, label);
                                     ArrayList<String> hook = db.getDefinition(guess);
                                     String meaning = hook.get(0);
-                                    String front = hook.get(1);
-                                    String back = hook.get(2);
+                                    String back = hook.get(1);
+                                    String front = hook.get(2);
 
                                     String colour;
 
@@ -498,7 +536,7 @@ public class MainActivity extends AppCompatActivity {
                                             break;
                                         case "Unknown": colour = "#FF0000";
                                             break;
-                                        case "Benjamin": colour = "#FF00FF";
+                                        case "Compound": colour = "#FF00FF";
                                             break;
                                         case "Prefix": colour = "#8000FF";
                                             break;
@@ -509,7 +547,7 @@ public class MainActivity extends AppCompatActivity {
                                         default: colour = "#000000";
                                     }
 
-                                    String amount = "<font color=\"" + colour + "\"><b><small>" + back + "</small> " + guess + " <small>" + front + "</small></b> " + meaning + " <b>" + label + "</b></font>";
+                                    String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + label + "</b></font>";
                                     t5.setText(Html.fromHtml(amount));
                                     summary = false;
                                     replies.remove(guess);
@@ -560,7 +598,7 @@ public class MainActivity extends AppCompatActivity {
                 b17.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        e4.setText("Benjamin");
+                        e4.setText("Compound");
                     }
                 });
 
@@ -605,8 +643,8 @@ public class MainActivity extends AppCompatActivity {
                                     if (line.equals(ultimate)) {
                                         ArrayList<String> hook = db.getDefinition(line);
                                         String meaning = hook.get(0);
-                                        String front = hook.get(1);
-                                        String back = hook.get(2);
+                                        String back = hook.get(1);
+                                        String front = hook.get(2);
 
                                         String colour;
 
@@ -617,7 +655,7 @@ public class MainActivity extends AppCompatActivity {
                                             case "Unknown":
                                                 colour = "#FF0000";
                                                 break;
-                                            case "Benjamin":
+                                            case "Compound":
                                                 colour = "#FF00FF";
                                                 break;
                                             case "Prefix":
@@ -633,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
                                                 colour = "#000000";
                                         }
 
-                                        String amount = "<font color=\"" + colour + "\"><b><small>" + back + "</small> " + line + " <small>" + front + "</small></b> " + meaning + " <b>" + category + "</b></font>";
+                                        String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + line + " <small>" + back + "</small></b> " + meaning + " <b>" + category + "</b></font>";
                                         t5.setText(Html.fromHtml(amount));
                                         summary = false;
                                     }
@@ -700,6 +738,13 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 summary = true;
                 revise(jumbles);
+            }
+        });
+
+        b25.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                e2.setText("");
             }
         });
     }
