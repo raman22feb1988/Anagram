@@ -14,7 +14,7 @@
             android:layout_height="wrap_content"
             android:text="Page Summary"
             android:enabled="false"
-            android:id="@+id/button38">
+            android:id="@+id/button17">
         </Button>
         <LinearLayout
             android:layout_width="wrap_content"
@@ -57,7 +57,7 @@
             android:layout_height="wrap_content"
             android:text="Go To Page"
             android:enabled="false"
-            android:id="@+id/button30">
+            android:id="@+id/button15">
         </Button>
     </LinearLayout>
     <LinearLayout
@@ -100,11 +100,12 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Clear"
-            android:id="@+id/button40">
+            android:id="@+id/button19">
         </Button>
         <EditText
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:hint="Enter answer"
             android:textSize="24dp"
             android:id="@+id/edittext2">
         </EditText>
@@ -147,9 +148,64 @@
             android:id="@+id/button10">
         </Button>
     </LinearLayout>
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/textview5">
-    </TextView>
+        android:orientation="horizontal">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom Quiz"
+            android:id="@+id/button21">
+        </Button>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom Query"
+            android:id="@+id/button20">
+        </Button>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Export CSV"
+            android:id="@+id/button22">
+        </Button>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Export Labels"
+            android:id="@+id/button24">
+        </Button>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Import CSV"
+            android:id="@+id/button23">
+        </Button>
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Import Labels"
+            android:id="@+id/button25">
+        </Button>
+    </LinearLayout>
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/textview5">
+        </TextView>
+    </ScrollView>
 </LinearLayout>

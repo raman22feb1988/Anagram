@@ -9,12 +9,16 @@ import android.os.Bundle;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Report extends AppCompatActivity {
     sqliteDB db;
@@ -30,7 +34,7 @@ public class Report extends AppCompatActivity {
     Button b5;
     Button b6;
     Button b7;
-    Button b15;
+    Button b8;
 
     ArrayList<String> anagrams;
     int words;
@@ -48,9 +52,9 @@ public class Report extends AppCompatActivity {
         b3 = findViewById(R.id.button8);
         b4 = findViewById(R.id.button9);
         b5 = findViewById(R.id.button13);
-        b6 = findViewById(R.id.button29);
-        b7 = findViewById(R.id.button31);
-        b15 = findViewById(R.id.button39);
+        b6 = findViewById(R.id.button14);
+        b7 = findViewById(R.id.button16);
+        b8 = findViewById(R.id.button18);
 
         db = new sqliteDB(Report.this);
 
@@ -70,13 +74,13 @@ public class Report extends AppCompatActivity {
         final View yourCustomView = inflater.inflate(R.layout.input, null);
 
         EditText e1 = yourCustomView.findViewById(R.id.edittext1);
+        e1.setHint("Enter a value between 2 and 15");
 
         AlertDialog dialog = new AlertDialog.Builder(Report.this)
                 .setTitle("Word length")
                 .setView(yourCustomView)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
-                        label = "*";
                         String alphabet = (e1.getText()).toString();
                         letters = alphabet.length() == 0 ? 0 : Integer.parseInt(alphabet);
                         if(letters < 2 || letters > 15)
@@ -95,6 +99,7 @@ public class Report extends AppCompatActivity {
 
     public void start()
     {
+        label = "*";
         anagrams = db.getSolvedWords(letters);
         words = anagrams.size();
         counter = db.getPage(letters, label);
@@ -116,7 +121,7 @@ public class Report extends AppCompatActivity {
         b1.setEnabled(true);
         b2.setEnabled(true);
         b7.setEnabled(true);
-        b15.setEnabled(true);
+        b8.setEnabled(true);
 
         if(words > 0) {
             t1.setText("Page " + (counter + 1) + " out of " + (((words - 1) / 100) + 1));
@@ -138,24 +143,8 @@ public class Report extends AppCompatActivity {
             int close = jumble.lastIndexOf("</b>");
 
             String category = jumble.substring(open + 3, close);
-            String colour;
-
-            switch(category)
-            {
-                case "Known": colour = "#008000";
-                    break;
-                case "Unknown": colour = "#FF0000";
-                    break;
-                case "Compound": colour = "#FF00FF";
-                    break;
-                case "Prefix": colour = "#8000FF";
-                    break;
-                case "Suffix": colour = "#0000FF";
-                    break;
-                case "Plural": colour = "#FF8000";
-                    break;
-                default: colour = "#000000";
-            }
+            HashMap<String, String> colours = db.getColours();
+            String colour = colours.containsKey(category) ? colours.get(category) : colours.get("");
 
             if(i == 0)
             {
@@ -222,60 +211,21 @@ public class Report extends AppCompatActivity {
                 EditText e6 = yourCustomView.findViewById(R.id.edittext6);
                 EditText e7 = yourCustomView.findViewById(R.id.edittext7);
 
-                Button b8 = yourCustomView.findViewById(R.id.button24);
-                Button b9 = yourCustomView.findViewById(R.id.button25);
-                Button b10 = yourCustomView.findViewById(R.id.button26);
-                Button b11 = yourCustomView.findViewById(R.id.button27);
-                Button b12 = yourCustomView.findViewById(R.id.button28);
-                Button b13 = yourCustomView.findViewById(R.id.button34);
-                Button b14 = yourCustomView.findViewById(R.id.button37);
+                Spinner s1 = yourCustomView.findViewById(R.id.spinner1);
+                ArrayList<String> labelList = db.getAllLabels();
 
-                b8.setOnClickListener(new View.OnClickListener() {
+                ArrayAdapter<String> spinnerAdapter = new ArrayAdapter(Report.this, android.R.layout.simple_spinner_item, labelList);
+                spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                s1.setAdapter(spinnerAdapter);
+
+                s1.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     @Override
-                    public void onClick(View view) {
-                        e6.setText("Known");
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        e6.setText(labelList.get(i));
                     }
-                });
 
-                b9.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View view) {
-                        e6.setText("Unknown");
-                    }
-                });
-
-                b10.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e6.setText("Compound");
-                    }
-                });
-
-                b11.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e6.setText("Prefix");
-                    }
-                });
-
-                b12.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e6.setText("Suffix");
-                    }
-                });
-
-                b13.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e6.setText("Plural");
-                    }
-                });
-
-                b14.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e6.setText("Learnt");
+                    public void onNothingSelected(AdapterView<?> adapterView) {
                     }
                 });
 
@@ -292,7 +242,7 @@ public class Report extends AppCompatActivity {
 
                                 if(exist == 0)
                                 {
-                                    db.insertLabel(letters, label);
+                                    db.insertLabel(letters, 0, label);
                                     begin();
                                 }
                                 else
@@ -326,6 +276,8 @@ public class Report extends AppCompatActivity {
                 final View yourCustomView = inflater.inflate(R.layout.input, null);
 
                 EditText e1 = yourCustomView.findViewById(R.id.edittext1);
+                int maximum = (((words - 1) / 100) + 1);
+                e1.setHint("Enter a value between 1 and " + maximum);
 
                 AlertDialog dialog = new AlertDialog.Builder(Report.this)
                         .setTitle("Go to page")
@@ -334,7 +286,6 @@ public class Report extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int whichButton) {
                                 String pages = (e1.getText()).toString();
                                 int page = pages.length() == 0 ? 0 : Integer.parseInt(pages);
-                                int maximum = (((words - 1) / 100) + 1);
                                 if(page < 1 || page > maximum)
                                 {
                                     Toast.makeText(Report.this, "Enter a value between 1 and " + maximum, Toast.LENGTH_LONG).show();
@@ -351,35 +302,41 @@ public class Report extends AppCompatActivity {
             }
         });
 
-        b15.setOnClickListener(new View.OnClickListener() {
+        b8.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 LayoutInflater inflater = LayoutInflater.from(Report.this);
                 final View yourCustomView = inflater.inflate(R.layout.query, null);
 
-                EditText e1 = yourCustomView.findViewById(R.id.edittext8);
+                TextView t3 = yourCustomView.findViewById(R.id.textview14);
+                t3.setText(db.getSchema());
+
+                EditText e2 = yourCustomView.findViewById(R.id.edittext8);
 
                 AlertDialog dialog = new AlertDialog.Builder(Report.this)
                         .setTitle("SELECT front, word, back, definition, time, label FROM words WHERE")
                         .setView(yourCustomView)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {
-                                label = (e1.getText()).toString();
+                                String customQuery = (e2.getText()).toString();
+                                ArrayList<String> resultSet = db.getSqlQuery(customQuery, Report.this);
 
-                                anagrams = db.getSqlQuery(label);
-                                words = anagrams.size();
+                                if(resultSet != null) {
+                                    label = customQuery;
+                                    letters = 0;
 
-                                int exists = db.existLabel(letters, label);
+                                    anagrams = resultSet;
+                                    words = anagrams.size();
 
-                                if(exists == 0)
-                                {
-                                    counter = 0;
-                                    db.insertLabel(letters, label);
-                                    nextWord();
-                                }
-                                else
-                                {
-                                    counter = db.getPage(letters, label);
+                                    int exists = db.existLabel(letters, label);
+
+                                    if (exists == 0) {
+                                        counter = 0;
+                                        db.insertLabel(letters, 0, label);
+                                    } else {
+                                        counter = db.getPage(letters, label);
+                                    }
+
                                     nextWord();
                                 }
                             }

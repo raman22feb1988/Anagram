@@ -18,6 +18,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +37,7 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
     sqliteDB db;
     int letters = 0;
+    String label = "*";
     HashMap<String, String> dictionary;
 
     int mode = 0;
@@ -56,8 +58,14 @@ public class MainActivity extends AppCompatActivity {
     Button b7;
     Button b8;
     Button b9;
-    Button b24;
-    Button b25;
+    Button b10;
+    Button b11;
+    Button b12;
+    Button b13;
+    Button b14;
+    Button b15;
+    Button b16;
+    Button b17;
 
     ArrayList<String> anagrams;
     int words;
@@ -83,9 +91,15 @@ public class MainActivity extends AppCompatActivity {
         b6 = findViewById(R.id.button10);
         b7 = findViewById(R.id.button11);
         b8 = findViewById(R.id.button12);
-        b9 = findViewById(R.id.button30);
-        b24 = findViewById(R.id.button38);
-        b25 = findViewById(R.id.button40);
+        b9 = findViewById(R.id.button15);
+        b10 = findViewById(R.id.button17);
+        b11 = findViewById(R.id.button19);
+        b12 = findViewById(R.id.button20);
+        b13 = findViewById(R.id.button21);
+        b14 = findViewById(R.id.button22);
+        b15 = findViewById(R.id.button23);
+        b16 = findViewById(R.id.button24);
+        b17 = findViewById(R.id.button25);
 
         db = new sqliteDB(MainActivity.this);
 
@@ -95,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         if(prepared) {
             getWordLength();
         } else {
-            Toast.makeText(MainActivity.this, "Please give some time to prepare database of dictionary words only when opening this for the first time", Toast.LENGTH_LONG).show();
+            db.alertBox("Database initialization", "Please give 1 hour to prepare database of dictionary words. Only when opening this for the first time.", MainActivity.this);
             db.prepareScore();
             prepareDictionary();
         }
@@ -172,8 +186,22 @@ public class MainActivity extends AppCompatActivity {
         editor.commit();
 
         setPageNumbers();
-
+        insertColours();
         getWordLength();
+    }
+
+    public void insertColours()
+    {
+        db.insertColour("Known", "#008000");
+        db.insertColour("Unknown", "#FF0000");
+        db.insertColour("Compound", "#FF00FF");
+        db.insertColour("Prefix", "#8000FF");
+        db.insertColour("Suffix", "#0000FF");
+        db.insertColour("Plural", "#000000");
+        db.insertColour("Guessable", "#FF8000");
+        db.insertColour("Past", "#0080FF");
+        db.insertColour("Learnt", "#808080");
+        db.insertColour("", "#B0B000");
     }
 
     public void getWordLength()
@@ -182,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         final View yourCustomView = inflater.inflate(R.layout.input, null);
 
         EditText e1 = yourCustomView.findViewById(R.id.edittext1);
+        e1.setHint("Enter a value between 2 and 15");
 
         AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
                 .setTitle("Word length")
@@ -210,6 +239,7 @@ public class MainActivity extends AppCompatActivity {
         final View yourCustomView = inflater.inflate(R.layout.input, null);
 
         EditText e1 = yourCustomView.findViewById(R.id.edittext1);
+        e1.setHint("Enter a value between 2 and 15");
 
         AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
                 .setTitle("Word length")
@@ -244,11 +274,27 @@ public class MainActivity extends AppCompatActivity {
 
     public void start()
     {
+        label = "*";
         anagrams = db.getAllAnagrams(letters);
         words = anagrams.size();
-        score = db.getScore(letters);
-        counter = db.getCounter(letters);
+        score = db.getScore(letters, label);
+
+        int actual = db.getCustomCounter(letters);
+        if(actual != score)
+        {
+            score = actual;
+            db.updateScore(letters, actual, label);
+        }
+
+        counter = db.getCounter(letters, label);
         number = db.getNumber(letters);
+
+        int high = (words - 1) / 50;
+        if(counter > high && words > 0)
+        {
+            counter = high;
+            db.updateCounter(letters, label, counter);
+        }
 
         nextWord();
     }
@@ -259,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<String> jumbles = new ArrayList<>();
         ArrayList<String> replies = new ArrayList<>();
         ArrayList<Integer> totals = new ArrayList<>();
+        ArrayList<Integer> amounts = new ArrayList<>();
         HashMap<String, Integer> grid = new HashMap<>();
         for(int idx = (50 * counter); idx < Math.min((50 * counter) + 50, words); idx++)
         {
@@ -267,6 +314,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         HashMap<String, ArrayList<String>> answers = db.getUnsolvedAnswers(jumbles);
+        HashMap<String, Integer> allList = db.getAllAnswers(jumbles);
         for(int total = 0; total < jumbles.size(); total++)
         {
             String answer = jumbles.get(total);
@@ -281,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
             else {
                 totals.add(0);
             }
+            amounts.add(allList.get(answer));
         }
 
         double delay = replies.size() == 0 ? 0 : db.getTime(replies.get(0));
@@ -292,7 +341,7 @@ public class MainActivity extends AppCompatActivity {
         b7.setEnabled(true);
         b8.setEnabled(true);
         b9.setEnabled(true);
-        b24.setEnabled(true);
+        b10.setEnabled(true);
 
         t1.setText("Page " + (counter + 1) + " out of " + (((words - 1) / 50) + 1));
         t4.setText("Score: " + score + "/" + number);
@@ -300,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
         summary = false;
         e2.setText("");
 
-        customadapter cusadapter = new customadapter(MainActivity.this, R.layout.cell, jumbles, totals);
+        customadapter cusadapter = new customadapter(MainActivity.this, R.layout.cell, jumbles, totals, amounts);
         g1.setAdapter(cusadapter);
 
         g1.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -318,24 +367,10 @@ public class MainActivity extends AppCompatActivity {
         g1.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
-                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
-                final View yourCustomView = inflater.inflate(R.layout.display, null);
-
-                TextView t6 = yourCustomView.findViewById(R.id.textview13);
-
                 String unsolved = jumbles.get(i);
                 String unsolvedAnswers = db.getUnsolvedWords(unsolved);
-                t6.setText(Html.fromHtml(unsolvedAnswers));
 
-                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("Unsolved answers")
-                        .setView(yourCustomView)
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-                            }
-                        }).create();
-                dialog.show();
-
+                db.messageBox("Unsolved answers", unsolvedAnswers, MainActivity.this);
                 return true;
             }
         });
@@ -352,7 +387,7 @@ public class MainActivity extends AppCompatActivity {
                     long stop = System.currentTimeMillis();
                     double time = stop - begin;
                     time /= 1000;
-                    time += delay;
+                    time += (letters == 1 ? db.getTime(guess) : delay);
                     ArrayList<String> guesses = new ArrayList<>();
                     guesses.add(guess);
                     db.updateTime(guesses, time, 1);
@@ -365,7 +400,7 @@ public class MainActivity extends AppCompatActivity {
                     summary = false;
                     replies.remove(guess);
                     score++;
-                    db.updateScore(letters, score);
+                    db.updateScore(letters, score, label);
                     int index = grid.get(guess);
                     totals.set(index, totals.get(index) - 1);
                     g1.invalidateViews();
@@ -386,7 +421,7 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     counter++;
                 }
-                db.updateCounter(letters, counter);
+                db.updateCounter(letters, label, counter);
                 cumulativeTime(begin, delay, replies);
                 nextWord();
             }
@@ -414,7 +449,7 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     counter--;
                 }
-                db.updateCounter(letters, counter);
+                db.updateCounter(letters, label, counter);
                 cumulativeTime(begin, delay, replies);
                 nextWord();
             }
@@ -452,60 +487,21 @@ public class MainActivity extends AppCompatActivity {
 
                     EditText e5 = yourCustomView.findViewById(R.id.edittext5);
 
-                    Button b10 = yourCustomView.findViewById(R.id.button14);
-                    Button b11 = yourCustomView.findViewById(R.id.button15);
-                    Button b12 = yourCustomView.findViewById(R.id.button16);
-                    Button b13 = yourCustomView.findViewById(R.id.button17);
-                    Button b14 = yourCustomView.findViewById(R.id.button18);
-                    Button b20 = yourCustomView.findViewById(R.id.button32);
-                    Button b22 = yourCustomView.findViewById(R.id.button35);
+                    Spinner s2 = yourCustomView.findViewById(R.id.spinner3);
+                    ArrayList<String> labelsList = db.getAllLabels();
 
-                    b10.setOnClickListener(new View.OnClickListener() {
+                    ArrayAdapter<String> comboBoxAdapter = new ArrayAdapter(MainActivity.this, android.R.layout.simple_spinner_item, labelsList);
+                    comboBoxAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    s2.setAdapter(comboBoxAdapter);
+
+                    s2.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
-                        public void onClick(View view) {
-                            e5.setText("Known");
+                        public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                            e5.setText(labelsList.get(i));
                         }
-                    });
 
-                    b11.setOnClickListener(new View.OnClickListener() {
                         @Override
-                        public void onClick(View view) {
-                            e5.setText("Unknown");
-                        }
-                    });
-
-                    b12.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            e5.setText("Compound");
-                        }
-                    });
-
-                    b13.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            e5.setText("Prefix");
-                        }
-                    });
-
-                    b14.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            e5.setText("Suffix");
-                        }
-                    });
-
-                    b20.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            e5.setText("Plural");
-                        }
-                    });
-
-                    b22.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            e5.setText("Learnt");
+                        public void onNothingSelected(AdapterView<?> adapterView) {
                         }
                     });
 
@@ -514,45 +510,29 @@ public class MainActivity extends AppCompatActivity {
                             .setView(yourCustomView)
                             .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                                 public void onClick(DialogInterface dialog, int whichButton) {
-                                    String label = (e5.getText()).toString();
+                                    String cardbox = (e5.getText()).toString();
 
                                     long stop = System.currentTimeMillis();
                                     double time = stop - begin;
                                     time /= 1000;
-                                    time += delay;
+                                    time += (letters == 1 ? db.getTime(guess) : delay);;
                                     ArrayList<String> guesses = new ArrayList<>();
                                     guesses.add(guess);
-                                    db.updateLabel(guesses, time, 1, label);
+                                    db.updateLabel(guesses, time, 1, cardbox);
                                     ArrayList<String> hook = db.getDefinition(guess);
                                     String meaning = hook.get(0);
                                     String back = hook.get(1);
                                     String front = hook.get(2);
 
-                                    String colour;
+                                    HashMap<String, String> colours = db.getColours();
+                                    String colour = colours.containsKey(cardbox) ? colours.get(cardbox) : colours.get("");
 
-                                    switch(label)
-                                    {
-                                        case "Known": colour = "#008000";
-                                            break;
-                                        case "Unknown": colour = "#FF0000";
-                                            break;
-                                        case "Compound": colour = "#FF00FF";
-                                            break;
-                                        case "Prefix": colour = "#8000FF";
-                                            break;
-                                        case "Suffix": colour = "#0000FF";
-                                            break;
-                                        case "Plural": colour = "#FF8000";
-                                            break;
-                                        default: colour = "#000000";
-                                    }
-
-                                    String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + label + "</b></font>";
+                                    String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + cardbox + "</b></font>";
                                     t5.setText(Html.fromHtml(amount));
                                     summary = false;
                                     replies.remove(guess);
                                     score++;
-                                    db.updateScore(letters, score);
+                                    db.updateScore(letters, score, label);
                                     int index = grid.get(guess);
                                     totals.set(index, totals.get(index) - 1);
                                     g1.invalidateViews();
@@ -573,60 +553,21 @@ public class MainActivity extends AppCompatActivity {
                 EditText e3 = yourCustomView.findViewById(R.id.edittext3);
                 EditText e4 = yourCustomView.findViewById(R.id.edittext4);
 
-                Button b15 = yourCustomView.findViewById(R.id.button19);
-                Button b16 = yourCustomView.findViewById(R.id.button20);
-                Button b17 = yourCustomView.findViewById(R.id.button21);
-                Button b18 = yourCustomView.findViewById(R.id.button22);
-                Button b19 = yourCustomView.findViewById(R.id.button23);
-                Button b21 = yourCustomView.findViewById(R.id.button33);
-                Button b23 = yourCustomView.findViewById(R.id.button36);
+                Spinner s1 = yourCustomView.findViewById(R.id.spinner2);
+                ArrayList<String> labelList = db.getAllLabels();
 
-                b15.setOnClickListener(new View.OnClickListener() {
+                ArrayAdapter<String> spinnerAdapter = new ArrayAdapter(MainActivity.this, android.R.layout.simple_spinner_item, labelList);
+                spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                s1.setAdapter(spinnerAdapter);
+
+                s1.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                     @Override
-                    public void onClick(View view) {
-                        e4.setText("Known");
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        e4.setText(labelList.get(i));
                     }
-                });
 
-                b16.setOnClickListener(new View.OnClickListener() {
                     @Override
-                    public void onClick(View view) {
-                        e4.setText("Unknown");
-                    }
-                });
-
-                b17.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e4.setText("Compound");
-                    }
-                });
-
-                b18.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e4.setText("Prefix");
-                    }
-                });
-
-                b19.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e4.setText("Suffix");
-                    }
-                });
-
-                b21.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e4.setText("Plural");
-                    }
-                });
-
-                b23.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        e4.setText("Learnt");
+                    public void onNothingSelected(AdapterView<?> adapterView) {
                     }
                 });
 
@@ -646,30 +587,8 @@ public class MainActivity extends AppCompatActivity {
                                         String back = hook.get(1);
                                         String front = hook.get(2);
 
-                                        String colour;
-
-                                        switch (category) {
-                                            case "Known":
-                                                colour = "#008000";
-                                                break;
-                                            case "Unknown":
-                                                colour = "#FF0000";
-                                                break;
-                                            case "Compound":
-                                                colour = "#FF00FF";
-                                                break;
-                                            case "Prefix":
-                                                colour = "#8000FF";
-                                                break;
-                                            case "Suffix":
-                                                colour = "#0000FF";
-                                                break;
-                                            case "Plural":
-                                                colour = "#FF8000";
-                                                break;
-                                            default:
-                                                colour = "#000000";
-                                        }
+                                        HashMap<String, String> colours = db.getColours();
+                                        String colour = colours.containsKey(category) ? colours.get(category) : colours.get("");
 
                                         String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + line + " <small>" + back + "</small></b> " + meaning + " <b>" + category + "</b></font>";
                                         t5.setText(Html.fromHtml(amount));
@@ -707,6 +626,8 @@ public class MainActivity extends AppCompatActivity {
                 final View yourCustomView = inflater.inflate(R.layout.input, null);
 
                 EditText e1 = yourCustomView.findViewById(R.id.edittext1);
+                int maximum = ((words - 1) / 50) + 1;
+                e1.setHint("Enter a value between 1 and " + maximum);
 
                 AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Go to page")
@@ -715,7 +636,6 @@ public class MainActivity extends AppCompatActivity {
                             public void onClick(DialogInterface dialog, int whichButton) {
                                 String pages = (e1.getText()).toString();
                                 int page = pages.length() == 0 ? 0 : Integer.parseInt(pages);
-                                int maximum = (((words - 1) / 50) + 1);
                                 if(page < 1 || page > maximum)
                                 {
                                     Toast.makeText(MainActivity.this, "Enter a value between 1 and " + maximum, Toast.LENGTH_LONG).show();
@@ -723,7 +643,7 @@ public class MainActivity extends AppCompatActivity {
                                 else
                                 {
                                     counter = page - 1;
-                                    db.updateCounter(letters, counter);
+                                    db.updateCounter(letters, label, counter);
                                     cumulativeTime(begin, delay, replies);
                                     nextWord();
                                 }
@@ -733,7 +653,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        b24.setOnClickListener(new View.OnClickListener() {
+        b10.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 summary = true;
@@ -741,10 +661,135 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        b25.setOnClickListener(new View.OnClickListener() {
+        b11.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 e2.setText("");
+            }
+        });
+
+        b12.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                final View yourCustomView = inflater.inflate(R.layout.query, null);
+
+                TextView t6 = yourCustomView.findViewById(R.id.textview14);
+                t6.setText(db.getSchema());
+
+                EditText e6 = yourCustomView.findViewById(R.id.edittext8);
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Enter your SQL query")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                String sqlQuery = (e6.getText()).toString();
+                                db.myQuery(sqlQuery, MainActivity.this);
+
+                                int real = letters == 1 ? db.getCustomScore(label) : db.getCustomCounter(letters);
+                                if (real != score) {
+                                    score = real;
+                                    db.updateScore(letters, real, label);
+                                }
+
+                                anagrams = letters == 1 ? db.getCustomQuiz(label, MainActivity.this) : db.getAllAnagrams(letters);
+                                words = anagrams.size();
+
+                                counter = db.getCounter(letters, label);
+                                number = letters == 1 ? db.getCustomNumber(label) : db.getNumber(letters);
+
+                                int peak = (words - 1) / 50;
+                                if (counter > peak && words > 0) {
+                                    counter = peak;
+                                    db.updateCounter(letters, label, counter);
+                                }
+
+                                cumulativeTime(begin, delay, replies);
+                                nextWord();
+                            }
+                        }).create();
+                dialog.show();
+            }
+        });
+
+        b13.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                final View yourCustomView = inflater.inflate(R.layout.query, null);
+
+                TextView t7 = yourCustomView.findViewById(R.id.textview14);
+                t7.setText(db.getSchema());
+
+                EditText e7 = yourCustomView.findViewById(R.id.edittext8);
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("SELECT DISTINCT(anagram) FROM words WHERE")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                String customQuery = (e7.getText()).toString();
+                                ArrayList<String> resultSet = db.getCustomQuiz(customQuery, MainActivity.this);
+
+                                if(resultSet != null) {
+                                    label = customQuery;
+                                    letters = 1;
+
+                                    anagrams = resultSet;
+                                    words = anagrams.size();
+                                    score = db.getCustomScore(label);
+                                    number = db.getCustomNumber(label);
+
+                                    int exists = db.existLabel(letters, label);
+
+                                    if (exists == 0) {
+                                        counter = 0;
+                                        db.insertLabel(letters, score, label);
+                                    } else {
+                                        counter = db.getCounter(letters, label);
+                                    }
+
+                                    int highest = (words - 1) / 50;
+                                    if (counter > highest && words > 0) {
+                                        counter = highest;
+                                        db.updateCounter(letters, label, counter);
+                                    }
+
+                                    cumulativeTime(begin, delay, replies);
+                                    nextWord();
+                                }
+                            }
+                        }).create();
+                dialog.show();
+            }
+        });
+
+        b14.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.exportDB(MainActivity.this);
+            }
+        });
+
+        b15.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.importDB(MainActivity.this);
+            }
+        });
+
+        b16.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.exportLabels(MainActivity.this);
+            }
+        });
+
+        b17.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.importLabels(MainActivity.this);
             }
         });
     }
@@ -760,8 +805,12 @@ public class MainActivity extends AppCompatActivity {
         long stop = System.currentTimeMillis();
         double time = stop - begin;
         time /= 1000;
-        time += delay;
-        db.updateTime(replies, time, 0);
+        if(letters == 1) {
+            db.updateCustomTime(replies, time);
+        } else {
+            time += delay;
+            db.updateTime(replies, time, 0);
+        }
     }
 
     public class customadapter extends ArrayAdapter<String>
@@ -770,14 +819,16 @@ public class MainActivity extends AppCompatActivity {
         int _resource;
         List<String> lival1;
         List<Integer> lival2;
+        List<Integer> lival3;
 
-        public customadapter(Context context, int resource, List<String> li1, List<Integer> li2) {
+        public customadapter(Context context, int resource, List<String> li1, List<Integer> li2, List<Integer> li3) {
             super(context, resource, li1);
             // TODO Auto-generated constructor stub
             con = context;
             _resource = resource;
             lival1 = li1;
             lival2 = li2;
+            lival3 = li3;
         }
 
         @Override
@@ -792,9 +843,10 @@ public class MainActivity extends AppCompatActivity {
 
             String lival = lival1.get(position);
             int li = lival2.get(position);
+            int livalue = lival3.get(position);
 
             t2.setText(lival);
-            t3.setText(Integer.toString(li));
+            t3.setText(superscript(li) + "/" + subscript(livalue));
 
             if(li == 0)
             {
@@ -808,7 +860,7 @@ public class MainActivity extends AppCompatActivity {
 
     public double probability(String st)
     {
-        int frequency[] = new int[]{9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1};
+        int frequency[] = new int[] {9, 2, 2, 4, 12, 2, 3, 2, 9, 1, 1, 4, 2, 6, 8, 2, 1, 6, 4, 6, 4, 2, 2, 1, 2, 1};
         int count = 100;
         double chance = 1;
         for(int j = 0; j < st.length(); j++)
@@ -823,5 +875,29 @@ public class MainActivity extends AppCompatActivity {
             count--;
         }
         return chance;
+    }
+
+    public String superscript(int value) {
+        char characters[] = "⁰¹²³⁴⁵⁶⁷⁸⁹".toCharArray();
+        String chars = Integer.toString(value);
+        char character[] = chars.toCharArray();
+        char sub[] = new char[chars.length()];
+        for(int values = 0; values < chars.length(); values++)
+        {
+            sub[values] = characters[character[values] - 48];
+        }
+        return new String(sub);
+    }
+
+    public String subscript(int value) {
+        char characters[] = "₀₁₂₃₄₅₆₇₈₉".toCharArray();
+        String chars = Integer.toString(value);
+        char character[] = chars.toCharArray();
+        char sub[] = new char[chars.length()];
+        for(int values = 0; values < chars.length(); values++)
+        {
+            sub[values] = characters[character[values] - 48];
+        }
+        return new String(sub);
     }
 }

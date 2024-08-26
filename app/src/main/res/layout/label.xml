@@ -4,61 +4,25 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
+        android:layout_height="wrap_content">
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Known"
-            android:id="@+id/button19">
-        </Button>
-        <Button
+            android:text="Either select one of already existing labels:"
+            android:id="@+id/textview17">
+        </TextView>
+        <Spinner
+            android:id="@+id/spinner2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Unknown"
-            android:id="@+id/button20">
-        </Button>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Compound"
-            android:id="@+id/button21">
-        </Button>
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Learnt"
-            android:id="@+id/button36">
-        </Button>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Prefix"
-            android:id="@+id/button22">
-        </Button>
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Suffix"
-            android:id="@+id/button23">
-        </Button>
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Plural"
-            android:id="@+id/button33">
-        </Button>
+            android:text="Or enter a new label:"
+            android:id="@+id/textview18">
+        </TextView>
     </LinearLayout>
     <LinearLayout
         android:orientation="horizontal"

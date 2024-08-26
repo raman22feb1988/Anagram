@@ -1,12 +1,27 @@
 package com.example.anagram;
 
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Environment;
+import android.text.Html;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +45,9 @@ public class sqliteDB extends SQLiteOpenHelper {
         db.execSQL(
                 "create table scores(length integer, score integer, counter integer, page integer, label text)"
         );
+        db.execSQL(
+                "create table colours(label text, colour text)"
+        );
     }
 
     @Override
@@ -37,7 +55,262 @@ public class sqliteDB extends SQLiteOpenHelper {
         // TODO Auto-generated method stub
         db.execSQL("DROP TABLE IF EXISTS words");
         db.execSQL("DROP TABLE IF EXISTS scores");
+        db.execSQL("DROP TABLE IF EXISTS colours");
         onCreate(db);
+    }
+
+    public void myQuery(String sqlQuery, Context activity) {
+        try {
+            SQLiteDatabase db = this.getWritableDatabase();
+            db.execSQL(sqlQuery);
+        }
+        catch(SQLiteException e) {
+            alertBox("Error", e.toString(), activity);
+        }
+    }
+
+    public ArrayList<String> getAllLabels()
+    {
+        ArrayList<String> labelList = new ArrayList<>();
+        labelList.add("");
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT DISTINCT(label) FROM words ORDER BY label", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String data = cursor.getString(0);
+
+                if(data.length() > 0) {
+                    labelList.add(data);
+                }
+            } while(cursor.moveToNext());
+        }
+        return labelList;
+    }
+
+    public ArrayList<String> getTableNames()
+    {
+        ArrayList<String> tableList = new ArrayList<>();
+        int idx = 0;
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type = 'table'", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String data = cursor.getString(0);
+
+                if(idx > 0) {
+                    tableList.add(data);
+                }
+                idx++;
+            } while(cursor.moveToNext());
+        }
+        return tableList;
+    }
+
+    public String getSchema()
+    {
+        String schema = new String();
+        ArrayList<String> tablesList = getTableNames();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        for(String tableName : tablesList)
+        {
+            Cursor cursor = db.query(tableName, null, null, null, null, null, null);
+            String columnList[] = cursor.getColumnNames();
+            schema += (schema.length() == 0 ? tableName + "\n" + Arrays.toString(columnList) : "\n" + tableName + "\n" + Arrays.toString(columnList));
+        }
+        return schema;
+    }
+
+    public void exportDB(Context situation)
+    {
+        File exportDir = new File(Environment.getExternalStorageDirectory(), "");
+        if (!exportDir.exists())
+        {
+            exportDir.mkdirs();
+        }
+
+        ArrayList<String> tables = getTableNames();
+        for(String table : tables)
+        {
+            File file = new File(exportDir, "Android/data/com.example.anagram/files/" + table + ".csv");
+            try
+            {
+                file.createNewFile();
+                CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
+                SQLiteDatabase db = this.getReadableDatabase();
+                Cursor curCSV = db.rawQuery("SELECT * FROM " + table,null);
+                String columnsList[] = curCSV.getColumnNames();
+                csvWrite.writeNext(columnsList);
+                while(curCSV.moveToNext())
+                {
+                    String arrStr[] = new String[columnsList.length];
+                    for(int index = 0; index < columnsList.length; index++)
+                    {
+                        arrStr[index] = curCSV.getString(index);
+                    }
+                    csvWrite.writeNext(arrStr);
+                }
+                csvWrite.close();
+                curCSV.close();
+                alertBox("Export CSV", "Export CSV complete.", situation);
+            }
+            catch(Exception sqlEx)
+            {
+                alertBox("Export CSV", sqlEx.toString(), situation);
+            }
+        }
+    }
+
+    public void importDB(Context situation)
+    {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        File exportDir = new File(Environment.getExternalStorageDirectory(), "");
+        String path = "Android/data/com.example.anagram/files/words.csv";
+        String database = "words";
+
+        LayoutInflater inflater = LayoutInflater.from(situation);
+        final View yourCustomView = inflater.inflate(R.layout.path, null);
+
+        TextView t4 = yourCustomView.findViewById(R.id.textview22);
+        EditText e2 = yourCustomView.findViewById(R.id.edittext10);
+        EditText e3 = yourCustomView.findViewById(R.id.edittext11);
+
+        t4.setText(exportDir.toString() + "/");
+        e2.setText(path);
+        e3.setText(database);
+
+        AlertDialog dialog = new AlertDialog.Builder(situation)
+                .setTitle("File name")
+                .setView(yourCustomView)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        String databaseName = (e3.getText()).toString();
+                        ArrayList<String> databases = getTableNames();
+                        if(databases.contains(databaseName))
+                        {
+                            File file = new File(exportDir, (e2.getText()).toString());
+                            try
+                            {
+                                CSVReader csvRead = new CSVReader(new FileReader(file));
+                                try {
+                                    String columns[] = csvRead.readNext();
+                                    String nextLine[] = csvRead.readNext();
+                                    do {
+                                        ContentValues contentValues = new ContentValues();
+                                        for(int column = 0; column < columns.length; column++) {
+                                            contentValues.put(columns[column], nextLine[column]);
+                                        }
+                                        db.insert(databaseName, null, contentValues);
+                                        nextLine = csvRead.readNext();
+                                    } while (nextLine != null);
+                                    csvRead.close();
+                                    alertBox("Import CSV", "Import CSV complete.", situation);
+                                }
+                                catch(IOException e)
+                                {
+                                    alertBox("Import CSV", e.toString(), situation);
+                                }
+                            }
+                            catch(FileNotFoundException e)
+                            {
+                                alertBox("Import CSV", e.toString(), situation);
+                            }
+                        }
+                        else
+                        {
+                            alertBox("Import CSV", "Table not found. Create a new table with the name '" + databaseName + "' first.", situation);
+                        }
+                    }
+                }).create();
+        dialog.show();
+    }
+
+    public void exportLabels(Context situation)
+    {
+        File exportDir = new File(Environment.getExternalStorageDirectory(), "");
+        if (!exportDir.exists())
+        {
+            exportDir.mkdirs();
+        }
+
+        File file = new File(exportDir, "Android/data/com.example.anagram/files/labels.csv");
+        try
+        {
+            file.createNewFile();
+            CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor curCSV = db.rawQuery("SELECT word, label FROM words WHERE label != \"\"",null);
+            String columnsList[] = curCSV.getColumnNames();
+            csvWrite.writeNext(columnsList);
+            while(curCSV.moveToNext())
+            {
+                String arrStr[] = new String[columnsList.length];
+                for(int index = 0; index < columnsList.length; index++)
+                {
+                    arrStr[index] = curCSV.getString(index);
+                }
+                csvWrite.writeNext(arrStr);
+            }
+            csvWrite.close();
+            curCSV.close();
+            alertBox("Export labels", "Export labels complete.", situation);
+        }
+        catch(Exception sqlEx)
+        {
+            alertBox("Export labels", sqlEx.toString(), situation);
+        }
+    }
+
+    public void importLabels(Context situation)
+    {
+        File exportDir = new File(Environment.getExternalStorageDirectory(), "");
+        String path = "Android/data/com.example.anagram/files/labels.csv";
+
+        LayoutInflater inflater = LayoutInflater.from(situation);
+        final View yourCustomView = inflater.inflate(R.layout.message, null);
+
+        TextView t3 = yourCustomView.findViewById(R.id.textview21);
+        EditText e1 = yourCustomView.findViewById(R.id.edittext9);
+
+        t3.setText(exportDir.toString() + "/");
+        e1.setText(path);
+
+        AlertDialog dialog = new AlertDialog.Builder(situation)
+                .setTitle("File name")
+                .setView(yourCustomView)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        File file = new File(exportDir, (e1.getText()).toString());
+                        try
+                        {
+                            CSVReader csvRead = new CSVReader(new FileReader(file));
+                            try {
+                                String columns[] = csvRead.readNext();
+                                String nextLine[] = csvRead.readNext();
+                                do {
+                                    updateWord(nextLine[0], nextLine[1]);
+                                    nextLine = csvRead.readNext();
+                                } while (nextLine != null);
+                                csvRead.close();
+                                alertBox("Import labels", "Import labels complete.", situation);
+                            }
+                            catch(IOException e)
+                            {
+                                alertBox("Import labels", e.toString(), situation);
+                            }
+                        }
+                        catch(FileNotFoundException e)
+                        {
+                            alertBox("Import labels", e.toString(), situation);
+                        }
+                    }
+                }).create();
+        dialog.show();
     }
 
     public boolean prepareScore()
@@ -78,13 +351,13 @@ public class sqliteDB extends SQLiteOpenHelper {
         return true;
     }
 
-    public boolean insertLabel(int letters, String label)
+    public boolean insertLabel(int letters, int score, String label)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
 
         contentValues.put("length", letters);
-        contentValues.put("score", 0);
+        contentValues.put("score", score);
         contentValues.put("counter", 0);
         contentValues.put("page", 0);
         contentValues.put("label", label);
@@ -93,10 +366,22 @@ public class sqliteDB extends SQLiteOpenHelper {
         return true;
     }
 
-    public int getScore(int letters)
+    public boolean insertColour(String label, String colour)
+    {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+
+        contentValues.put("label", label);
+        contentValues.put("colour", colour);
+
+        db.insert("colours", null, contentValues);
+        return true;
+    }
+
+    public int getScore(int letters, String label)
     {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT score FROM scores WHERE length = " + letters + " AND label = \"*\"", null);
+        Cursor cursor = db.rawQuery("SELECT score FROM scores WHERE length = " + letters + " AND label = \"" + label + "\"", null);
 
         String data = null;
 
@@ -108,10 +393,55 @@ public class sqliteDB extends SQLiteOpenHelper {
         return Integer.parseInt(data);
     }
 
-    public int getCounter(int letters)
+    public int getCustomScore(String customQuery)
     {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT counter FROM scores WHERE length = " + letters + " AND label = \"*\"", null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(word) FROM words WHERE solved = 1 AND anagram IN (SELECT DISTINCT(anagram) FROM words WHERE " + customQuery + ")", null);
+
+        String data = null;
+
+        if (cursor.moveToFirst()) {
+            do {
+                data = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        return Integer.parseInt(data);
+    }
+
+    public int getCustomCounter(int letters)
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(word) FROM words WHERE solved = 1 AND length = " + letters, null);
+
+        String data = null;
+
+        if (cursor.moveToFirst()) {
+            do {
+                data = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        return Integer.parseInt(data);
+    }
+
+    public int getCustomNumber(String customQuery)
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(word) FROM words WHERE anagram IN (SELECT DISTINCT(anagram) FROM words WHERE " + customQuery + ")", null);
+
+        String data = null;
+
+        if (cursor.moveToFirst()) {
+            do {
+                data = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        return Integer.parseInt(data);
+    }
+
+    public int getCounter(int letters, String label)
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT counter FROM scores WHERE length = " + letters + " AND label = \"" + label + "\"", null);
 
         String data = null;
 
@@ -140,12 +470,35 @@ public class sqliteDB extends SQLiteOpenHelper {
         return anagramList;
     }
 
+    public ArrayList<String> getCustomQuiz(String customQuery, Context activity)
+    {
+        try {
+            ArrayList<String> anagramList = new ArrayList<>();
+
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery("SELECT DISTINCT(anagram) FROM words WHERE " + customQuery, null);
+
+            if (cursor.moveToFirst()) {
+                do {
+                    String data = cursor.getString(0);
+
+                    anagramList.add(data);
+                } while (cursor.moveToNext());
+            }
+            return anagramList;
+        }
+        catch(SQLiteException e) {
+            alertBox("Error", e.toString(), activity);
+            return null;
+        }
+    }
+
     public ArrayList<String> getSolvedWords(int letters)
     {
         ArrayList<String> wordList = new ArrayList<>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label FROM words WHERE length = " + letters + " AND solved = 1 ORDER BY time DESC", null);
+        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label, page FROM words WHERE length = " + letters + " AND solved = 1 ORDER BY time DESC", null);
 
         if (cursor.moveToFirst()) {
             do {
@@ -155,8 +508,9 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String back = cursor.getString(3);
                 String front = cursor.getString(4);
                 String label = cursor.getString(5);
+                String page = cursor.getString(6);
 
-                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
             } while (cursor.moveToNext());
         }
         return wordList;
@@ -167,7 +521,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         ArrayList<String> wordList = new ArrayList<>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front FROM words WHERE length = " + letters + " AND solved = 1 AND label = \"" + label + "\" ORDER BY time DESC", null);
+        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, page FROM words WHERE length = " + letters + " AND solved = 1 AND label = \"" + label + "\" ORDER BY time DESC", null);
 
         if (cursor.moveToFirst()) {
             do {
@@ -176,33 +530,41 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String time = cursor.getString(2);
                 String back = cursor.getString(3);
                 String front = cursor.getString(4);
+                String page = cursor.getString(5);
 
-                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
             } while (cursor.moveToNext());
         }
         return wordList;
     }
 
-    public ArrayList<String> getSqlQuery(String query)
+    public ArrayList<String> getSqlQuery(String query, Context activity)
     {
-        ArrayList<String> wordList = new ArrayList<>();
+        try {
+            ArrayList<String> wordList = new ArrayList<>();
 
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label FROM words WHERE solved = 1 AND " + query + " ORDER BY time DESC", null);
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.rawQuery("SELECT word, definition, time, back, front, label, page FROM words WHERE solved = 1 AND " + query + " ORDER BY time DESC", null);
 
-        if (cursor.moveToFirst()) {
-            do {
-                String data = cursor.getString(0);
-                String definition = cursor.getString(1);
-                String time = cursor.getString(2);
-                String back = cursor.getString(3);
-                String front = cursor.getString(4);
-                String label = cursor.getString(5);
+            if (cursor.moveToFirst()) {
+                do {
+                    String data = cursor.getString(0);
+                    String definition = cursor.getString(1);
+                    String time = cursor.getString(2);
+                    String back = cursor.getString(3);
+                    String front = cursor.getString(4);
+                    String label = cursor.getString(5);
+                    String page = cursor.getString(6);
 
-                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>");
-            } while (cursor.moveToNext());
+                    wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
+                } while (cursor.moveToNext());
+            }
+            return wordList;
         }
-        return wordList;
+        catch(SQLiteException e) {
+            alertBox("Error", e.toString(), activity);
+            return null;
+        }
     }
 
     public HashMap<String, ArrayList<String>> getUnsolvedAnswers(ArrayList<String> jumbles)
@@ -234,6 +596,44 @@ public class sqliteDB extends SQLiteOpenHelper {
         return answerList;
     }
 
+    public HashMap<String, Integer> getAllAnswers(ArrayList<String> jumbles)
+    {
+        HashMap<String, Integer> allList = new HashMap<>();
+
+        String jumble = (((jumbles.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT anagram, COUNT(word) FROM words WHERE anagram IN " + jumble + " GROUP BY anagram", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String anagram = cursor.getString(0);
+                String word = cursor.getString(1);
+
+                allList.put(anagram, Integer.parseInt(word));
+            } while (cursor.moveToNext());
+        }
+        return allList;
+    }
+
+    public HashMap<String, String> getColours()
+    {
+        HashMap<String, String> colourList = new HashMap<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT label, colour FROM colours", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                String label = cursor.getString(0);
+                String colour = cursor.getString(1);
+
+                colourList.put(label, colour);
+            } while (cursor.moveToNext());
+        }
+        return colourList;
+    }
+
     public String getSolvedAnswers(String jumble)
     {
         String solved = new String();
@@ -250,24 +650,8 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String front = cursor.getString(3);
                 String label = cursor.getString(4);
 
-                String colour;
-
-                switch(label)
-                {
-                    case "Known": colour = "#008000";
-                        break;
-                    case "Unknown": colour = "#FF0000";
-                        break;
-                    case "Compound": colour = "#FF00FF";
-                        break;
-                    case "Prefix": colour = "#8000FF";
-                        break;
-                    case "Suffix": colour = "#0000FF";
-                        break;
-                    case "Plural": colour = "#FF8000";
-                        break;
-                    default: colour = "#000000";
-                }
+                HashMap<String, String> colours = getColours();
+                String colour = colours.containsKey(label) ? colours.get(label) : colours.get("");
 
                 if(total == 1) {
                     solved += ("<font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + label + "</b></font>");
@@ -351,24 +735,24 @@ public class sqliteDB extends SQLiteOpenHelper {
         return Integer.parseInt(data);
     }
 
-    public int updateScore(int letters, int score) {
+    public int updateScore(int letters, int score, String label) {
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put("score", score);
 
         return db.update("scores", values, "length = ? AND label = ?",
-                new String[] {Integer.toString(letters), "*"});
+                new String[] {Integer.toString(letters), label});
     }
 
-    public int updateCounter(int letters, int counter) {
+    public int updateCounter(int letters, String label, int counter) {
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put("counter", counter);
 
         return db.update("scores", values, "length = ? AND label = ?",
-                new String[] {Integer.toString(letters), "*"});
+                new String[] {Integer.toString(letters), label});
     }
 
     public int updatePage(int letters, int counter, String label) {
@@ -393,13 +777,19 @@ public class sqliteDB extends SQLiteOpenHelper {
                 new String[] {});
     }
 
-    public int updateLabel(ArrayList<String> guesses, double time, int solved, String label) {
+    public void updateCustomTime(ArrayList<String> guesses, double time) {
+        SQLiteDatabase db = getWritableDatabase();
+        String guess = (((guesses.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
+        db.execSQL("UPDATE words SET time = time + " + time + " WHERE word IN " + guess);
+    }
+
+    public int updateLabel(ArrayList<String> guesses, double time, int solved, String cardbox) {
         SQLiteDatabase db = getWritableDatabase();
 
         ContentValues values = new ContentValues();
         values.put("time", time);
         values.put("solved", solved);
-        values.put("label", label);
+        values.put("label", cardbox);
 
         String guess = (((guesses.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
         return db.update("words", values, "word IN " + guess,
@@ -456,7 +846,7 @@ public class sqliteDB extends SQLiteOpenHelper {
     public int getNumber(int letters)
     {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM words WHERE length = " + letters, null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(word) FROM words WHERE length = " + letters, null);
 
         String data = null;
 
@@ -471,7 +861,7 @@ public class sqliteDB extends SQLiteOpenHelper {
     public int existLabel(int letters, String label)
     {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM scores WHERE length = " + letters + " AND label = \"" + label + "\"", null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(score) FROM scores WHERE length = " + letters + " AND label = \"" + label + "\"", null);
 
         String data = null;
 
@@ -521,24 +911,8 @@ public class sqliteDB extends SQLiteOpenHelper {
             int l = value.length();
             String aerolith = value.substring(1, l - 1);
 
-            String colour;
-
-            switch(key)
-            {
-                case "Known": colour = "#008000";
-                    break;
-                case "Unknown": colour = "#FF0000";
-                    break;
-                case "Compound": colour = "#FF00FF";
-                    break;
-                case "Prefix": colour = "#8000FF";
-                    break;
-                case "Suffix": colour = "#0000FF";
-                    break;
-                case "Plural": colour = "#FF8000";
-                    break;
-                default: colour = "#000000";
-            }
+            HashMap<String, String> colours = getColours();
+            String colour = colours.containsKey(key) ? colours.get(key) : colours.get("");
 
             if(serial == 0) {
                 revision += ("<font color=\"" + colour + "\"><b>" + key + ": " + aerolith + "</b></font>");
@@ -551,6 +925,42 @@ public class sqliteDB extends SQLiteOpenHelper {
         }
 
         return revision;
+    }
+
+    public void alertBox(String title, String message, Context location)
+    {
+        LayoutInflater inflater = LayoutInflater.from(location);
+        final View yourCustomView = inflater.inflate(R.layout.display, null);
+
+        TextView t1 = yourCustomView.findViewById(R.id.textview13);
+        t1.setText(message);
+
+        AlertDialog dialog = new AlertDialog.Builder(location)
+            .setTitle(title)
+            .setView(yourCustomView)
+            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                }
+            }).create();
+        dialog.show();
+    }
+
+    public void messageBox(String title, String message, Context location)
+    {
+        LayoutInflater inflater = LayoutInflater.from(location);
+        final View yourCustomView = inflater.inflate(R.layout.display, null);
+
+        TextView t2 = yourCustomView.findViewById(R.id.textview13);
+        t2.setText(Html.fromHtml(message));
+
+        AlertDialog dialog = new AlertDialog.Builder(location)
+            .setTitle(title)
+            .setView(yourCustomView)
+            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int whichButton) {
+                }
+            }).create();
+        dialog.show();
     }
 
     public static void main(String[] args) {

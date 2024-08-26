@@ -30,7 +30,7 @@
                 android:layout_height="wrap_content"
                 android:text="SQL Query"
                 android:enabled="false"
-                android:id="@+id/button39">
+                android:id="@+id/button18">
             </Button>
             <Button
                 android:layout_width="wrap_content"
@@ -55,7 +55,7 @@
                 android:layout_height="wrap_content"
                 android:text="Go To Page"
                 android:enabled="false"
-                android:id="@+id/button31">
+                android:id="@+id/button16">
             </Button>
         </LinearLayout>
         <LinearLayout
@@ -78,7 +78,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Exit"
-                android:id="@+id/button29">
+                android:id="@+id/button14">
             </Button>
         </LinearLayout>
         <ScrollView
