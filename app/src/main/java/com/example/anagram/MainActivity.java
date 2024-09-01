@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     Button b15;
     Button b16;
     Button b17;
+    Button b18;
 
     ArrayList<String> anagrams;
     int words;
@@ -100,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
         b15 = findViewById(R.id.button23);
         b16 = findViewById(R.id.button24);
         b17 = findViewById(R.id.button25);
+        b18 = findViewById(R.id.button26);
 
         db = new sqliteDB(MainActivity.this);
 
@@ -109,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
         if(prepared) {
             getWordLength();
         } else {
-            db.alertBox("Database initialization", "Please give 1 hour to prepare database of dictionary words. Only when opening this for the first time.", MainActivity.this);
+            Toast.makeText(MainActivity.this, "Please give 1 hour to prepare database of dictionary words. Only when opening this for the first time.", Toast.LENGTH_LONG).show();
             db.prepareScore();
             prepareDictionary();
         }
@@ -790,6 +792,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 db.importLabels(MainActivity.this);
+            }
+        });
+
+        b18.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String labelColours = db.getLabelColours();
+                db.messageBox("Label colours", labelColours, MainActivity.this);
             }
         });
     }

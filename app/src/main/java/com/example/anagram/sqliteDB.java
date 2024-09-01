@@ -69,6 +69,31 @@ public class sqliteDB extends SQLiteOpenHelper {
         }
     }
 
+    public String getLabelColours()
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT label, colour FROM colours", null);
+
+        String labelColours = "<b>";
+        int line = 1;
+
+        if (cursor.moveToFirst()) {
+            do {
+                String label = cursor.getString(0);
+                String colour = cursor.getString(1);
+
+                if(line == 1) {
+                    labelColours += ("<font color=\"" + colour + "\">" + line + ". " + (label.length() == 0 ? "(Default)" : label) + ": " + colour + "</font>");
+                } else {
+                    labelColours += ("<br><font color=\"" + colour + "\">" + line + ". " + (label.length() == 0 ? "(Default)" : label) + ": " + colour + "</font>");
+                }
+                line++;
+            } while (cursor.moveToNext());
+        }
+        labelColours += "</b>";
+        return labelColours;
+    }
+
     public ArrayList<String> getAllLabels()
     {
         ArrayList<String> labelList = new ArrayList<>();
