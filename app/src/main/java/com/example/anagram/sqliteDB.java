@@ -40,7 +40,7 @@ public class sqliteDB extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         // TODO Auto-generated method stub
         db.execSQL(
-                "create table words(word text, length integer, anagram text, definition text, probability real, time real, solved integer, back text, front text, label text, page integer)"
+                "create table words(word text, length integer, anagram text, definition text, probability real, time real, solved integer, back text, front text, label text, page integer, answers integer)"
         );
         db.execSQL(
                 "create table scores(length integer, score integer, counter integer, page integer, label text)"
@@ -67,6 +67,21 @@ public class sqliteDB extends SQLiteOpenHelper {
         catch(SQLiteException e) {
             alertBox("Error", e.toString(), activity);
         }
+    }
+
+    public String getLabel(String guess)
+    {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT label FROM words WHERE word = \"" + guess + "\"", null);
+
+        String label = null;
+
+        if (cursor.moveToFirst()) {
+            do {
+                label = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        return label;
     }
 
     public String getLabelColours()
@@ -269,7 +284,7 @@ public class sqliteDB extends SQLiteOpenHelper {
             file.createNewFile();
             CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
             SQLiteDatabase db = this.getReadableDatabase();
-            Cursor curCSV = db.rawQuery("SELECT word, label FROM words WHERE label != \"\"",null);
+            Cursor curCSV = db.rawQuery("SELECT word, label, solved, time FROM words WHERE time > 0",null);
             String columnsList[] = curCSV.getColumnNames();
             csvWrite.writeNext(columnsList);
             while(curCSV.moveToNext())
@@ -318,7 +333,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                                 String columns[] = csvRead.readNext();
                                 String nextLine[] = csvRead.readNext();
                                 do {
-                                    updateWord(nextLine[0], nextLine[1]);
+                                    updateAnswers(nextLine[0], nextLine[1], Integer.parseInt(nextLine[2]), Double.parseDouble(nextLine[3]));
                                     nextLine = csvRead.readNext();
                                 } while (nextLine != null);
                                 csvRead.close();
@@ -355,7 +370,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         return true;
     }
 
-    public boolean insertWord(String word, int length, String anagram, String definition, double probability, String back, String front, String label)
+    public boolean insertWord(String word, int length, String anagram, String definition, double probability, String back, String front, String label, int solutions)
     {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -371,6 +386,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         contentValues.put("front", front);
         contentValues.put("label", label);
         contentValues.put("page", 0);
+        contentValues.put("answers", solutions);
 
         db.insert("words", null, contentValues);
         return true;
@@ -535,7 +551,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String label = cursor.getString(5);
                 String page = cursor.getString(6);
 
-                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b>, Page " + page);
             } while (cursor.moveToNext());
         }
         return wordList;
@@ -557,7 +573,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String front = cursor.getString(4);
                 String page = cursor.getString(5);
 
-                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
+                wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b>, Page " + page);
             } while (cursor.moveToNext());
         }
         return wordList;
@@ -581,7 +597,7 @@ public class sqliteDB extends SQLiteOpenHelper {
                     String label = cursor.getString(5);
                     String page = cursor.getString(6);
 
-                    wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + label + "</b>, Page " + page);
+                    wordList.add("<b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " (" + time + " seconds) <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b>, Page " + page);
                 } while (cursor.moveToNext());
             }
             return wordList;
@@ -676,13 +692,21 @@ public class sqliteDB extends SQLiteOpenHelper {
                 String label = cursor.getString(4);
 
                 HashMap<String, String> colours = getColours();
-                String colour = colours.containsKey(label) ? colours.get(label) : colours.get("");
 
-                if(total == 1) {
-                    solved += ("<font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + label + "</b></font>");
-                }
-                else {
-                    solved += ("<br><font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + label + "</b></font>");
+                if(colours.containsKey(label) || colours.containsKey("")) {
+                    String colour = colours.containsKey(label) ? colours.get(label) : colours.get("");
+
+                    if (total == 1) {
+                        solved += ("<font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b></font>");
+                    } else {
+                        solved += ("<br><font color=\"" + colour + "\">" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b></font>");
+                    }
+                } else {
+                    if (total == 1) {
+                        solved += (total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b>");
+                    } else {
+                        solved += ("<br>" + total + ". <b><small>" + front + "</small> " + data + " <small>" + back + "</small></b> " + definition + " <b>" + (label.length() == 0 ? "(No Label)" : label) + "</b>");
+                    }
                 }
 
                 total++;
@@ -831,6 +855,18 @@ public class sqliteDB extends SQLiteOpenHelper {
                 new String[] {line});
     }
 
+    public int updateAnswers(String line, String category, int solved, double time) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("label", category);
+        values.put("solved", solved);
+        values.put("time", time);
+
+        return db.update("words", values, "word = ?",
+                new String[] {line});
+    }
+
     public int updatePageNumbers(ArrayList<String> anagramList) {
         SQLiteDatabase db = getWritableDatabase();
 
@@ -903,7 +939,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         String guess = (((guesses.toString()).replace("[", "(\"")).replace("]", "\")")).replace(", ", "\", \"");
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT front, word, back, label FROM words WHERE anagram IN " + guess + " AND NOT label = \"\"", null);
+        Cursor cursor = db.rawQuery("SELECT front, word, back, label FROM words WHERE anagram IN " + guess + " AND solved = 1", null);
 
         HashMap<String, ArrayList<String>> h = new HashMap<>();
 
@@ -937,13 +973,21 @@ public class sqliteDB extends SQLiteOpenHelper {
             String aerolith = value.substring(1, l - 1);
 
             HashMap<String, String> colours = getColours();
-            String colour = colours.containsKey(key) ? colours.get(key) : colours.get("");
 
-            if(serial == 0) {
-                revision += ("<font color=\"" + colour + "\"><b>" + key + ": " + aerolith + "</b></font>");
-            }
-            else {
-                revision += ("<br><font color=\"" + colour + "\"><b>" + key + ": " + aerolith + "</b></font>");
+            if(colours.containsKey(key) || colours.containsKey("")) {
+                String colour = colours.containsKey(key) ? colours.get(key) : colours.get("");
+
+                if (serial == 0) {
+                    revision += ("<font color=\"" + colour + "\"><b>" + (key.length() == 0 ? "(No Label)" : key) + ": " + aerolith + "</b></font>");
+                } else {
+                    revision += ("<br><font color=\"" + colour + "\"><b>" + (key.length() == 0 ? "(No Label)" : key) + ": " + aerolith + "</b></font>");
+                }
+            } else {
+                if (serial == 0) {
+                    revision += ("<b>" + (key.length() == 0 ? "(No Label)" : key) + ": " + aerolith + "</b>");
+                } else {
+                    revision += ("<br><b>" + (key.length() == 0 ? "(No Label)" : key) + ": " + aerolith + "</b>");
+                }
             }
 
             serial++;
@@ -961,12 +1005,12 @@ public class sqliteDB extends SQLiteOpenHelper {
         t1.setText(message);
 
         AlertDialog dialog = new AlertDialog.Builder(location)
-            .setTitle(title)
-            .setView(yourCustomView)
-            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                }
-            }).create();
+                .setTitle(title)
+                .setView(yourCustomView)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                }).create();
         dialog.show();
     }
 
@@ -979,12 +1023,12 @@ public class sqliteDB extends SQLiteOpenHelper {
         t2.setText(Html.fromHtml(message));
 
         AlertDialog dialog = new AlertDialog.Builder(location)
-            .setTitle(title)
-            .setView(yourCustomView)
-            .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                }
-            }).create();
+                .setTitle(title)
+                .setView(yourCustomView)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                    }
+                }).create();
         dialog.show();
     }
 

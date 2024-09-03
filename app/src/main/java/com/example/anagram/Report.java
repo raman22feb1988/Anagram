@@ -144,15 +144,21 @@ public class Report extends AppCompatActivity {
 
             String category = jumble.substring(open + 3, close);
             HashMap<String, String> colours = db.getColours();
-            String colour = colours.containsKey(category) ? colours.get(category) : colours.get("");
 
-            if(i == 0)
-            {
-                t2.setText("<font color=\"" + colour + "\">" + (position + 1) + ". " + jumble + "</font>");
-            }
-            else
-            {
-                t2.setText(t2.getText() + "<br><font color=\"" + colour + "\">" + (position + 1) + ". " + jumble + "</font>");
+            if(colours.containsKey(category) || colours.containsKey("")) {
+                String colour = colours.containsKey(category) ? colours.get(category) : colours.get("");
+
+                if (i == 0) {
+                    t2.setText("<font color=\"" + colour + "\">" + (position + 1) + ". " + jumble + "</font>");
+                } else {
+                    t2.setText(t2.getText() + "<br><font color=\"" + colour + "\">" + (position + 1) + ". " + jumble + "</font>");
+                }
+            } else {
+                if (i == 0) {
+                    t2.setText((position + 1) + ". " + jumble);
+                } else {
+                    t2.setText(t2.getText() + "<br>" + (position + 1) + ". " + jumble);
+                }
             }
         }
 

@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     int letters = 0;
     String label = "*";
     HashMap<String, String> dictionary;
+    HashMap<String, Integer> anagramsList;
 
     int mode = 0;
     String ultimate = "";
@@ -127,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
     public void prepareDictionary()
     {
         dictionary = new HashMap<>();
+        anagramsList = new HashMap<>();
 
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(getAssets().open("CSW2021.txt"), "UTF-8"));
@@ -141,6 +143,19 @@ public class MainActivity extends AppCompatActivity {
                 {
                     String t[] = s.split("=");
                     dictionary.put(t[0], t[1]);
+
+                    char jumbled[] = t[0].toCharArray();
+                    Arrays.sort(jumbled);
+                    String solution = new String(jumbled);
+
+                    if(anagramsList.containsKey(solution))
+                    {
+                        anagramsList.put(solution, anagramsList.get(solution) + 1);
+                    }
+                    else
+                    {
+                        anagramsList.put(solution, 1);
+                    }
                 }
             }
         }
@@ -165,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
             char c[] = word.toCharArray();
             Arrays.sort(c);
             String anagram = new String(c);
+            int solutions = anagramsList.get(anagram);
             String definition = entry.getValue();
             StringBuilder back = new StringBuilder();
             StringBuilder front = new StringBuilder();
@@ -179,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
                     front.append(letter);
                 }
             }
-            boolean q = db.insertWord(word, word.length(), anagram, definition, probability(word), new String(back), new String(front), "");
+            boolean q = db.insertWord(word, word.length(), anagram, definition, probability(word), new String(back), new String(front), "", solutions);
         }
 
         SharedPreferences pref = getApplicationContext().getSharedPreferences("AppData", 0);
@@ -397,7 +413,17 @@ public class MainActivity extends AppCompatActivity {
                     String meaning = hook.get(0);
                     String back = hook.get(1);
                     String front = hook.get(2);
-                    String amount = "<b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning;
+                    HashMap<String, String> colourList = db.getColours();
+                    String coloursList = db.getLabel(guess);
+                    String amount;
+
+                    if (colourList.containsKey(coloursList) || colourList.containsKey("")) {
+                        String coloured = colourList.containsKey(coloursList) ? colourList.get(coloursList) : colourList.get("");
+                        amount = "<font color=\"" + coloured + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + (coloursList.length() == 0 ? "(No Label)" : coloursList) + "</b></font>";
+                    } else {
+                        amount = "<b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + (coloursList.length() == 0 ? "(No Label)" : coloursList) + "</b>";
+                    }
+
                     t5.setText(Html.fromHtml(amount));
                     summary = false;
                     replies.remove(guess);
@@ -527,9 +553,15 @@ public class MainActivity extends AppCompatActivity {
                                     String front = hook.get(2);
 
                                     HashMap<String, String> colours = db.getColours();
-                                    String colour = colours.containsKey(cardbox) ? colours.get(cardbox) : colours.get("");
+                                    String amount;
 
-                                    String amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + cardbox + "</b></font>";
+                                    if(colours.containsKey(cardbox) || colours.containsKey("")) {
+                                        String colour = colours.containsKey(cardbox) ? colours.get(cardbox) : colours.get("");
+                                        amount = "<font color=\"" + colour + "\"><b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + (cardbox.length() == 0 ? "(No Label)" : cardbox) + "</b></font>";
+                                    } else {
+                                        amount = "<b><small>" + front + "</small> " + guess + " <small>" + back + "</small></b> " + meaning + " <b>" + (cardbox.length() == 0 ? "(No Label)" : cardbox) + "</b>";
+                                    }
+
                                     t5.setText(Html.fromHtml(amount));
                                     summary = false;
                                     replies.remove(guess);
