@@ -123,6 +123,153 @@ public class MainActivity extends AppCompatActivity {
                 getWordLength();
             }
         });
+
+        b5.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent1 = new Intent(MainActivity.this, Report.class);
+                startActivity(intent1);
+                finish();
+            }
+        });
+
+        b11.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                e2.setText("");
+            }
+        });
+
+        b12.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                final View yourCustomView = inflater.inflate(R.layout.query, null);
+
+                TextView t6 = yourCustomView.findViewById(R.id.textview14);
+                t6.setText(db.getSchema());
+
+                EditText e6 = yourCustomView.findViewById(R.id.edittext8);
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Enter your SQL query")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                String sqlQuery = (e6.getText()).toString();
+                                db.myQuery(sqlQuery, MainActivity.this);
+
+                                int real = letters == 1 ? db.getCustomScore(label) : db.getCustomCounter(letters);
+                                if (real != score) {
+                                    score = real;
+                                    db.updateScore(letters, real, label);
+                                }
+
+                                anagrams = letters == 1 ? db.getCustomQuiz(label, MainActivity.this) : db.getAllAnagrams(letters);
+                                words = anagrams.size();
+
+                                counter = db.getCounter(letters, label);
+                                number = letters == 1 ? db.getCustomNumber(label) : db.getNumber(letters);
+
+                                int peak = (words - 1) / 50;
+                                if (counter > peak && words > 0) {
+                                    counter = peak;
+                                    db.updateCounter(letters, label, counter);
+                                }
+
+                                nextWord();
+                            }
+                        }).create();
+                dialog.show();
+            }
+        });
+
+        b13.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                LayoutInflater inflater = LayoutInflater.from(MainActivity.this);
+                final View yourCustomView = inflater.inflate(R.layout.query, null);
+
+                TextView t7 = yourCustomView.findViewById(R.id.textview14);
+                t7.setText(db.getSchema());
+
+                EditText e7 = yourCustomView.findViewById(R.id.edittext8);
+
+                AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("SELECT DISTINCT(anagram) FROM words WHERE")
+                        .setView(yourCustomView)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                String customQuery = (e7.getText()).toString();
+                                ArrayList<String> resultSet = db.getCustomQuiz(customQuery, MainActivity.this);
+
+                                if(resultSet != null) {
+                                    label = customQuery;
+                                    letters = 1;
+
+                                    anagrams = resultSet;
+                                    words = anagrams.size();
+                                    score = db.getCustomScore(label);
+                                    number = db.getCustomNumber(label);
+
+                                    int exists = db.existLabel(letters, label);
+
+                                    if (exists == 0) {
+                                        counter = 0;
+                                        db.insertLabel(letters, score, label);
+                                    } else {
+                                        counter = db.getCounter(letters, label);
+                                    }
+
+                                    int highest = (words - 1) / 50;
+                                    if (counter > highest && words > 0) {
+                                        counter = highest;
+                                        db.updateCounter(letters, label, counter);
+                                    }
+
+                                    nextWord();
+                                }
+                            }
+                        }).create();
+                dialog.show();
+            }
+        });
+
+        b14.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.exportDB(MainActivity.this);
+            }
+        });
+
+        b15.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.importDB(MainActivity.this);
+            }
+        });
+
+        b16.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.exportLabels(MainActivity.this);
+            }
+        });
+
+        b17.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                db.importLabels(MainActivity.this);
+            }
+        });
+
+        b18.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String labelColours = db.getLabelColours();
+                db.messageBox("Label colours", labelColours, MainActivity.this);
+            }
+        });
     }
 
     public void prepareDictionary()
@@ -274,6 +421,9 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else
                         {
+                            mode = 0;
+                            ultimate = "";
+
                             cumulativeTime(begin, delay, replies);
                             start();
                         }
@@ -459,9 +609,6 @@ public class MainActivity extends AppCompatActivity {
         b3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mode = 0;
-                ultimate = "";
-
                 wordLength(begin, delay, replies);
             }
         });
@@ -696,13 +843,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        b11.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                e2.setText("");
-            }
-        });
-
         b12.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -797,42 +937,6 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }).create();
                 dialog.show();
-            }
-        });
-
-        b14.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                db.exportDB(MainActivity.this);
-            }
-        });
-
-        b15.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                db.importDB(MainActivity.this);
-            }
-        });
-
-        b16.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                db.exportLabels(MainActivity.this);
-            }
-        });
-
-        b17.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                db.importLabels(MainActivity.this);
-            }
-        });
-
-        b18.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String labelColours = db.getLabelColours();
-                db.messageBox("Label colours", labelColours, MainActivity.this);
             }
         });
     }
