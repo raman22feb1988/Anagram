@@ -121,7 +121,6 @@ public class Report extends AppCompatActivity {
         b1.setEnabled(true);
         b2.setEnabled(true);
         b7.setEnabled(true);
-        b8.setEnabled(true);
 
         if(words > 0) {
             t1.setText("Page " + (counter + 1) + " out of " + (((words - 1) / 100) + 1));
@@ -320,7 +319,7 @@ public class Report extends AppCompatActivity {
                 EditText e2 = yourCustomView.findViewById(R.id.edittext8);
 
                 AlertDialog dialog = new AlertDialog.Builder(Report.this)
-                        .setTitle("SELECT front, word, back, definition, time, label FROM words WHERE")
+                        .setTitle("SELECT front, word, back, definition, time, label FROM words WHERE solved = 1 AND")
                         .setView(yourCustomView)
                         .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int whichButton) {

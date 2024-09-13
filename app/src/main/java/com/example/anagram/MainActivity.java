@@ -219,7 +219,8 @@ public class MainActivity extends AppCompatActivity {
         db.insertColour("Guessable", "#FF8000");
         db.insertColour("Past", "#0080FF");
         db.insertColour("Learnt", "#808080");
-        db.insertColour("", "#B0B000");
+        db.insertColour("New", "#B0B000");
+        db.insertColour("", "#B0B0B0");
     }
 
     public void getWordLength()
