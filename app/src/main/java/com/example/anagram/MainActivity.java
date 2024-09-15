@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         if(prepared) {
             getWordLength();
         } else {
-            Toast.makeText(MainActivity.this, "Please give 1 hour to prepare database of dictionary words. Only when opening this for the first time.", Toast.LENGTH_LONG).show();
+            Toast.makeText(MainActivity.this, "Please give 1 hour to prepare database of dictionary words. Only when opening this mobile app for the first time.", Toast.LENGTH_LONG).show();
             db.prepareScore();
             prepareDictionary();
         }
