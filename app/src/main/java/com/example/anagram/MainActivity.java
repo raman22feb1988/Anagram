@@ -362,12 +362,12 @@ public class MainActivity extends AppCompatActivity {
         db.insertColour("Compound", "#FF00FF");
         db.insertColour("Prefix", "#8000FF");
         db.insertColour("Suffix", "#0000FF");
-        db.insertColour("Plural", "#000000");
+        db.insertColour("Plural", "#808080");
         db.insertColour("Guessable", "#FF8000");
         db.insertColour("Past", "#0080FF");
-        db.insertColour("Learnt", "#808080");
-        db.insertColour("New", "#B0B000");
-        db.insertColour("", "#B0B0B0");
+        db.insertColour("Learnt", "#B97A57");
+        db.insertColour("New", "#C0C000");
+        db.insertColour("", "#000000");
     }
 
     public void getWordLength()
