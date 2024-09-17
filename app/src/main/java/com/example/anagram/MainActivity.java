@@ -993,7 +993,7 @@ public class MainActivity extends AppCompatActivity {
             int livalue = lival3.get(position);
 
             t2.setText(lival);
-            t3.setText(superscript(li) + "/" + subscript(livalue));
+            t3.setText(superscript(livalue - li) + "/" + subscript(livalue));
 
             if(li == 0)
             {
