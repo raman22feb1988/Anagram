@@ -115,7 +115,7 @@ public class sqliteDB extends SQLiteOpenHelper {
         labelList.add("");
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT DISTINCT(label) FROM words ORDER BY label", null);
+        Cursor cursor = db.rawQuery("SELECT DISTINCT(label) FROM colours ORDER BY label", null);
 
         if (cursor.moveToFirst()) {
             do {
